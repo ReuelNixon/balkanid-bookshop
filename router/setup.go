@@ -4,11 +4,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func hello(c *fiber.Ctx) error {
-    return c.SendString("Hello World!")
-}
+var USER fiber.Router
 
 func SetupRoutes(app *fiber.App) {
     api := app.Group("/api")
-    api.Get("/", hello)
+    USER = api.Group("/user")
+	SetupUserRoutes()
 }
