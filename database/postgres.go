@@ -39,5 +39,5 @@ func ConnectToDB() {
     log.Println("DB Connection established successfully")
 
     log.Print("Running the migrations...")
-    DB.AutoMigrate(&models.User{}, &models.Claims{})
+    DB.AutoMigrate(&models.User{}, &models.Claims{}, &models.Admin{})
 }
