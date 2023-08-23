@@ -25,6 +25,8 @@ func SetupUserRoutes() {
     privUser := USER.Group("/private")
     privUser.Use(util.SecureAuth())
     privUser.Get("/data", GetUserData)
+    privUser.Post("/logout", LogoutUser)
+    privUser.Delete("/delete", DeleteUser)
 }
 
 func CreateUser(c *fiber.Ctx) error {
@@ -129,7 +131,6 @@ func GetUserData(c *fiber.Ctx) error {
     return c.JSON(u)
 }
 
-
 func GetAccessToken(c *fiber.Ctx) error {
     refreshToken := c.Cookies("refresh_token")
 
@@ -167,4 +168,20 @@ func GetAccessToken(c *fiber.Ctx) error {
     })
 
     return c.JSON(fiber.Map{"access_token": accessToken})
+}
+
+func LogoutUser(c *fiber.Ctx) error {
+    c.ClearCookie("access_token", "refresh_token")
+    return c.SendStatus(fiber.StatusOK)
+}
+
+func DeleteUser(c *fiber.Ctx) error {
+    id := c.Locals("id")
+    u := new(models.User)
+    if res := db.DB.Where("uuid = ?", id).First(&u); res.RowsAffected <= 0 {
+        return c.JSON(fiber.Map{"error": true, "general": "Cannot find the User"})
+    }
+
+    db.DB.Delete(&u)
+    return c.SendStatus(fiber.StatusOK)
 }
