@@ -5,7 +5,6 @@ import (
 	"bookshop/models"
 	"bookshop/util"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -15,8 +14,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
  
-var jwtKey = []byte(os.Getenv("PRIV_KEY"))
-
 func SetupUserRoutes() {
     USER.Post("/signup", CreateUser)
     USER.Post("/signin", LoginUser)
