@@ -19,7 +19,7 @@ func ConnectToDB() {
         log.Fatal("Error loading env file \n", err)
     }
 
-    dsn := fmt.Sprintf("host=localhost user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Kolkata",
+    dsn := fmt.Sprintf("host=bookshop-db-1 user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Kolkata",
         os.Getenv("DB_USER"), 
 		os.Getenv("DB_PASSWORD"), 
 		os.Getenv("DB_NAME"), 
@@ -28,7 +28,7 @@ func ConnectToDB() {
     log.Print("Connecting to the Database...")
     DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
         Logger: logger.Default.LogMode(logger.Info),
-    })
+    }) 
 
     if err != nil {
         log.Fatal("Erroe connecting to database. \n", err)
