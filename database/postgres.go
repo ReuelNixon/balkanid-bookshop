@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"bookshop/models"
+
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -35,4 +37,7 @@ func ConnectToDB() {
         os.Exit(2)
     }
     log.Println("DB Connection established successfully")
+
+    log.Print("Running the migrations...")
+    DB.AutoMigrate(&models.User{}, &models.Claims{})
 }
