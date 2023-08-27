@@ -8,7 +8,7 @@ type Book struct {
 	gorm.Model
 	ID 			   	   uint   `gorm:"primaryKey"`
 	ISBN               string `json:"isbn" gorm:"not null"`
-	BookTitle          string `json:"book_title "gorm:"not null"`
+	BookTitle          string `json:"book_title" gorm:"not null"`
 	BookAuthor         string `json:"book_author"`
 	YearOfPublication  string `json:"year_of_publication"`
 	Publisher          string `json:"publisher"`
