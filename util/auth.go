@@ -24,7 +24,7 @@ func GenerateAccessClaims(uuid string) (*models.Claims, string) {
     claim := &models.Claims{
         StandardClaims: jwt.StandardClaims{
             Issuer:    uuid,
-            ExpiresAt: t.Add(15 * time.Minute).Unix(),
+            ExpiresAt: t.Add(24 * time.Hour).Unix(),
             Subject:   "access_token",
             IssuedAt:  t.Unix(),
         },
@@ -77,6 +77,10 @@ func GenerateRefreshClaims(cl *models.Claims) string {
 func SecureAuth() func(*fiber.Ctx) error {
     return func(c *fiber.Ctx) error {
         accessToken := c.Cookies("access_token")
+        if accessToken == "" {
+            c.ClearCookie("access_token", "refresh_token")
+            return c.SendStatus(fiber.StatusUnauthorized)
+        }
         claims := new(models.Claims)
 
         token, err := jwt.ParseWithClaims(accessToken, claims,
