@@ -57,7 +57,7 @@ func CreateAdmin(c *fiber.Ctx) error {
     password := []byte(a.Password)
     hashedPassword, err := bcrypt.GenerateFromPassword(
         password,
-        rand.Intn(bcrypt.MaxCost-bcrypt.MinCost)+bcrypt.MinCost,
+        rand.Intn(5),
     )
 
     if err != nil {
