@@ -21,5 +21,18 @@ services:
             - postgres-db:/var/lib/postgresql/data
             - ./server/database/populate.sql:/docker-entrypoint-initdb.d/populate.sql
 
+    client:
+        build:
+            context: ./client
+            dockerfile: Dockerfile
+        ports:
+            - 8080:8080
+        volumes:
+            - ./client:/app
+            - /app/node_modules
+        depends_on:
+            - web
+        command: yarn dev
+
 volumes:
     postgres-db:
