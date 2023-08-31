@@ -5,6 +5,7 @@ import (
 	"bookshop/models"
 	"bookshop/util"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -20,6 +21,7 @@ func SetupBookRoutes() {
     privPaths.Get("/purchases", GetPurchases)
     
 	BOOK.Get("/", GetPaginatedBooks)
+    BOOK.Get("/search/:query", SearchBooks)
 	BOOK.Get("/:bookID/reviews", GetPaginatedReviews)
 	BOOK.Get("/:bookID", GetBookByID)
 }
@@ -27,7 +29,7 @@ func SetupBookRoutes() {
  
 func GetPaginatedBooks(c *fiber.Ctx) error {
 	page := c.Query("page", "1")
-	pageSize := c.Query("pageSize", "10")
+	pageSize := c.Query("pageSize", "12")
 
 	var books []models.Book
 	var totalCount int64
@@ -336,7 +338,44 @@ func GetPurchases(c *fiber.Ctx) error {
     })
 }
 
+func SearchBooks(c *fiber.Ctx) error {
+    query := c.Params("query")
+    page := c.Query("page", "1")
+    pageSize := c.Query("pageSize", "10")
 
+    pageNum := parsePageNumber(page)
+    pageSizeNum := parsePageSize(pageSize)
+
+    // var books []models.Book
+    // if err := database.DB.Where("book_title LIKE ?","%"+query+"%").
+    //         Or("book_author LIKE ?", "%"+query+"%").
+    //         Offset((pageNum - 1) * pageSizeNum).
+    //         Limit(pageSizeNum).
+    //         Find(&books).Error; err != nil {
+    //     return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+    //         "error":   true,
+    //         "message": "Failed to fetch search results",
+    //         "errors":   err,
+    //     })
+    // }
+    var books []models.Book
+    if err := database.DB.Where("CONCAT(' ', LOWER(book_title)) ILIKE ?", "% "+strings.ToLower(query)+"%").
+            Or("CONCAT(' ', LOWER(book_author)) ILIKE ?", "% "+strings.ToLower(query)+"%").
+            Offset((pageNum - 1) * pageSizeNum).
+            Limit(pageSizeNum).
+            Find(&books).Error; err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to fetch search results",
+            "errors":   err,
+        })
+    }
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "error":   false,
+        "message": "Search results fetched successfully",
+        "data":    books,
+    })
+}
 
 
 
