@@ -25,7 +25,6 @@ export default function PokemonPage({ params }: ParamType) {
 	async function getBook(ID: string) {
 		const response = await fetch("http://localhost:3000/api/book/" + ID);
 		const data = await response.json();
-		console.log(data);
 		setBook(data.data);
 	}
 
@@ -34,7 +33,6 @@ export default function PokemonPage({ params }: ParamType) {
 			"http://localhost:3000/api/book/" + ID + "/reviews/"
 		);
 		const data = await response.json();
-		console.log(data);
 		setReviews(data.data);
 	}
 

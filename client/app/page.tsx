@@ -8,7 +8,6 @@ export default function Home() {
 	async function getBooks() {
 		const response = await fetch("http://localhost:3000/api/book/");
 		const data = await response.json();
-		console.log(data);
 		setBooks(data.data);
 	}
 	useEffect(() => {
