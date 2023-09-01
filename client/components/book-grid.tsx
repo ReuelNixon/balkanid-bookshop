@@ -19,7 +19,6 @@ export function BookGrid({ bookList }: BookGridProps) {
 		);
 	};
 	const filteredbookList = searchFilter(bookList);
-	console.log(filteredbookList);
 
 	return (
 		<>
