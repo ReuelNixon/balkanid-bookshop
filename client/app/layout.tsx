@@ -1,6 +1,7 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,16 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={inter.className}>
 				<ThemeProvider attribute="class" defaultTheme="dark">
-					{children}
+					<main className="flex min-h-screen flex-col items-center p-10">
+						<div className="z-10 p-8 max-w-5xl w-full items-center justify-between text-sm lg:p-0 lg:flex">
+							<Link href={"/"}>
+								<p className="text-xl fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:p-4 lg:rounded-xl lg:border lg:bg-gray-200 lg:dark:bg-zinc-800/30">
+									BalkanID Bookshop
+								</p>
+							</Link>
+						</div>
+						{children}
+					</main>
 				</ThemeProvider>
 			</body>
 		</html>
