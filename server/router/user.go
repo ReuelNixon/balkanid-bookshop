@@ -48,7 +48,7 @@ func CreateUser(c *fiber.Ctx) error {
         errors.Err, errors.Username = true, "Username is already registered"
     }
     if errors.Err {
-        return c.JSON(errors)
+        return c.Status(fiber.StatusBadRequest).JSON(errors)
     }
 
     password := []byte(u.Password)
@@ -140,17 +140,20 @@ func GetAccessToken(c *fiber.Ctx) error {
         "expires_at = ? AND issued_at = ? AND issuer = ?",
         refreshClaims.ExpiresAt, refreshClaims.IssuedAt, refreshClaims.Issuer,
     ).First(&models.Claims{}); res.RowsAffected <= 0 {
-        c.ClearCookie("access_token", "refresh_token")
+        c.Cookie(util.ClearCookie("access_token"))
+        c.Cookie(util.ClearCookie("refresh_token"))
         return c.SendStatus(fiber.StatusForbidden)
     }
 
     if token.Valid {
         if refreshClaims.ExpiresAt < time.Now().Unix() {
-            c.ClearCookie("access_token", "refresh_token")
+            c.Cookie(util.ClearCookie("access_token"))
+            c.Cookie(util.ClearCookie("refresh_token"))
             return c.SendStatus(fiber.StatusForbidden)
         }
     } else {
-        c.ClearCookie("access_token", "refresh_token")
+        c.Cookie(util.ClearCookie("access_token"))
+        c.Cookie(util.ClearCookie("refresh_token"))
         return c.SendStatus(fiber.StatusForbidden)
     }
 
@@ -168,8 +171,12 @@ func GetAccessToken(c *fiber.Ctx) error {
 }
 
 func LogoutUser(c *fiber.Ctx) error {
-    c.ClearCookie("access_token", "refresh_token")
-    return c.SendStatus(fiber.StatusOK)
+    c.Cookie(util.ClearCookie("access_token"))
+    c.Cookie(util.ClearCookie("refresh_token"))
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "error":   false,
+        "message": "Successfully logged out",
+    })
 }
 
 func DeleteUser(c *fiber.Ctx) error {

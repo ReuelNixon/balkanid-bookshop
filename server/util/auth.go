@@ -78,7 +78,8 @@ func SecureAuth() func(*fiber.Ctx) error {
     return func(c *fiber.Ctx) error {
         accessToken := c.Cookies("access_token")
         if accessToken == "" {
-            c.ClearCookie("access_token", "refresh_token")
+            c.Cookie(ClearCookie("access_token"))
+            c.Cookie(ClearCookie("refresh_token"))
             return c.SendStatus(fiber.StatusUnauthorized)
         }
         claims := new(models.Claims)
@@ -98,13 +99,15 @@ func SecureAuth() func(*fiber.Ctx) error {
         } else if ve, ok := err.(*jwt.ValidationError); ok {
             if ve.Errors&jwt.ValidationErrorMalformed != 0 {
                 // not a token
-                c.ClearCookie("access_token", "refresh_token")
+                c.Cookie(ClearCookie("access_token"))
+                c.Cookie(ClearCookie("refresh_token"))
                 return c.SendStatus(fiber.StatusForbidden)
             } else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
                 // expired or not active 
                 return c.SendStatus(fiber.StatusUnauthorized)
             } else {
-                c.ClearCookie("access_token", "refresh_token")
+                c.Cookie(ClearCookie("access_token"))
+                c.Cookie(ClearCookie("refresh_token"))
                 return c.SendStatus(fiber.StatusForbidden)
             }
         }
@@ -132,4 +135,15 @@ func GetAuthCookies(accessToken, refreshToken string) (*fiber.Cookie, *fiber.Coo
     }
 
     return accessCookie, refreshCookie
+}
+
+func ClearCookie(name string) *fiber.Cookie {
+    return &fiber.Cookie{
+        Name:     name,
+        Value:    "",
+        Expires:  time.Now().Add(-24 * time.Hour),
+        HTTPOnly: true,
+        Secure:   true,
+        Domain:   "localhost",
+    }
 }

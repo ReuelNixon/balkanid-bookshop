@@ -143,17 +143,20 @@ func GetAdminAccessToken(c *fiber.Ctx) error {
 		"expires_at = ? AND issued_at = ? AND issuer = ?",
 		refreshClaims.ExpiresAt, refreshClaims.IssuedAt, refreshClaims.Issuer,
 	).First(&models.Claims{}); res.RowsAffected <= 0 {
-		c.ClearCookie("access_token", "refresh_token")
+		c.Cookie(util.ClearCookie("access_token"))
+		c.Cookie(util.ClearCookie("refresh_token"))
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
 	if token.Valid {
 		if refreshClaims.ExpiresAt < time.Now().Unix() {
-			c.ClearCookie("access_token", "refresh_token")
+			c.Cookie(util.ClearCookie("access_token"))
+			c.Cookie(util.ClearCookie("refresh_token"))
 			return c.SendStatus(fiber.StatusForbidden)
 		}
 	} else {
-		c.ClearCookie("access_token", "refresh_token")
+		c.Cookie(util.ClearCookie("access_token"))
+		c.Cookie(util.ClearCookie("refresh_token"))
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
@@ -171,20 +174,8 @@ func GetAdminAccessToken(c *fiber.Ctx) error {
 }
 
 func LogoutAdmin(c *fiber.Ctx) error {
-	// c.ClearCookie("access_token")
-	// c.ClearCookie("refresh_token")
-	expired := time.Now().Add(-time.Hour * 24)
-	c.Cookie(&fiber.Cookie{
-		Name:    "access_token",
-		Value:   "",
-		Expires: expired,
-	})
-
-	c.Cookie(&fiber.Cookie{
-		Name:    "refresh_token",
-		Value:   "",
-		Expires: expired,
-	})
+	c.Cookie(util.ClearCookie("access_token"))
+	c.Cookie(util.ClearCookie("refresh_token"))
 	return c.SendStatus(fiber.StatusOK)
 }
 
