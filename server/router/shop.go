@@ -46,7 +46,7 @@ func GetPaginatedBooks(c *fiber.Ctx) error {
 	}
 
 	// Calculate offset and limit based on pagination parameters
-	offset, limit := calculatePagination(page, pageSize, totalCount)
+	offset, limit := CalculatePagination(page, pageSize, totalCount)
 
 	// Fetch paginated books
 	if err := database.DB.Offset(offset).Limit(limit).Find(&books).Error; err != nil {
@@ -115,7 +115,7 @@ func AddToCart(c *fiber.Ctx) error {
     }
 
     uuid := c.Locals("id").(string)
-    userID, err := convertUUIDtoUserID(uuid)
+    userID, err := ConvertUUIDtoUserID(uuid)
 
     if inCart := database.DB.Where("book_id = ?", input.BookID).Where("user_id = ?", userID).First(&models.Cart{}).RowsAffected; inCart != 0 {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -152,7 +152,7 @@ func AddToCart(c *fiber.Ctx) error {
 
 func GetCartItems(c *fiber.Ctx) error {
     uuid := c.Locals("id").(string)
-    userID, err := convertUUIDtoUserID(uuid)
+    userID, err := ConvertUUIDtoUserID(uuid)
     
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -221,7 +221,7 @@ func PostReview(c *fiber.Ctx) error {
     }
 
     uuid := c.Locals("id").(string)
-    userID, err := convertUUIDtoUserID(uuid)
+    userID, err := ConvertUUIDtoUserID(uuid)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
@@ -254,8 +254,8 @@ func GetPaginatedReviews(c *fiber.Ctx) error {
     page := c.Query("page", "1")
     pageSize := c.Query("pageSize", "10")
 
-    pageNum := parsePageNumber(page)
-    pageSizeNum := parsePageSize(pageSize)
+    pageNum := ParsePageNumber(page)
+    pageSizeNum := ParsePageSize(pageSize)
     var reviews []models.Review
     if err := database.DB.Where("book_id = ?", bookID).
             Offset((pageNum - 1) * pageSizeNum).
@@ -278,7 +278,7 @@ func GetPaginatedReviews(c *fiber.Ctx) error {
 func Checkout(c *fiber.Ctx) error {
     bookID := c.Params("bookID")
     uuid := c.Locals("id").(string)
-    userID, err := convertUUIDtoUserID(uuid)
+    userID, err := ConvertUUIDtoUserID(uuid)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
@@ -335,7 +335,7 @@ func Checkout(c *fiber.Ctx) error {
 
 func CheckoutAll(c *fiber.Ctx) error {
     uuid := c.Locals("id").(string)
-    userID, err := convertUUIDtoUserID(uuid)
+    userID, err := ConvertUUIDtoUserID(uuid)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
@@ -396,7 +396,7 @@ func CheckoutAll(c *fiber.Ctx) error {
 
 func GetPurchases(c *fiber.Ctx) error {
     uuid := c.Locals("id").(string)
-    userID, err := convertUUIDtoUserID(uuid)
+    userID, err := ConvertUUIDtoUserID(uuid)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
@@ -522,7 +522,7 @@ func GetRecommendations(c *fiber.Ctx) error {
     }
     bookIDint := uint(bookIDNum)
 
-    bookName, err := getNameFromBookID(bookIDint)
+    bookName, err := GetNameFromBookID(bookIDint)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
@@ -530,7 +530,7 @@ func GetRecommendations(c *fiber.Ctx) error {
             "errors":   err,
         })
     }
-    bookListName := getRecommendations(bookName)
+    bookListName := GetRecommendationsHelper(bookName)
 
     var books []models.Book
     for _, bookName := range bookListName {
@@ -554,9 +554,9 @@ func GetRecommendations(c *fiber.Ctx) error {
 
 
 // ---------------------UTILITY FUNCTIONS---------------------
-func calculatePagination(page, pageSize string, totalCount int64) (int, int) {
-	pageNum := parsePageNumber(page)
-	pageSizeNum := parsePageSize(pageSize)
+func CalculatePagination(page, pageSize string, totalCount int64) (int, int) {
+	pageNum := ParsePageNumber(page)
+	pageSizeNum := ParsePageSize(pageSize)
 
 	// Calculate offset and limit for pagination
 	offset := (pageNum - 1) * pageSizeNum
@@ -570,7 +570,7 @@ func calculatePagination(page, pageSize string, totalCount int64) (int, int) {
 }
 
 
-func parsePageNumber(page string) int {
+func ParsePageNumber(page string) int {
 	pageNum := 1
 	if p, err := strconv.Atoi(page); err == nil && p > 0 {
 		pageNum = p
@@ -579,7 +579,7 @@ func parsePageNumber(page string) int {
 }
 
 
-func parsePageSize(pageSize string) int {
+func ParsePageSize(pageSize string) int {
 	pageSizeNum := 10
 	if size, err := strconv.Atoi(pageSize); err == nil && size > 0 {
 		pageSizeNum = size
@@ -588,7 +588,7 @@ func parsePageSize(pageSize string) int {
 }
 
 
-func convertUUIDtoUserID(uuid string) (uint, error) {
+func ConvertUUIDtoUserID(uuid string) (uint, error) {
     var user models.User
     if err := database.DB.Where("uuid = ?", uuid).First(&user).Error; err != nil {
         return 0, err
@@ -597,7 +597,7 @@ func convertUUIDtoUserID(uuid string) (uint, error) {
 }
 
 
-func getNameFromBookID(bookID uint) (string, error) {
+func GetNameFromBookID(bookID uint) (string, error) {
     var book models.Book
     if err := database.DB.Where("id = ?", bookID).First(&book).Error; err != nil {
         return "", err

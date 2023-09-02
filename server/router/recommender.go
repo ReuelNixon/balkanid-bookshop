@@ -11,7 +11,7 @@ type Book struct {
 	Title string `json:"title"`
 }
 
-func bookRecommendationEngine(bookName string, idlist [][]int, books []Book) []string {
+func BookRecommendationEngine(bookName string, idlist [][]int, books []Book) []string {
 	var bookListName []string
 	// Find book index
 	var bookIndex int
@@ -30,7 +30,7 @@ func bookRecommendationEngine(bookName string, idlist [][]int, books []Book) []s
 	return bookListName
 }
 
-func getRecommendations(bookName string) []string {
+func GetRecommendationsHelper(bookName string) []string {
 	currentDir, err := os.Getwd()
     if err != nil {
         fmt.Println("Error getting current directory:", err)
@@ -65,7 +65,7 @@ func getRecommendations(bookName string) []string {
 		os.Exit(1)
 	}
 
-	bookListName := bookRecommendationEngine(bookName, idlist, books)
+	bookListName := BookRecommendationEngine(bookName, idlist, books)
 
 	return bookListName
 }
