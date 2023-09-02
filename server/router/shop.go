@@ -332,6 +332,7 @@ func Checkout(c *fiber.Ctx) error {
     })
 }
 
+
 func CheckoutAll(c *fiber.Ctx) error {
     uuid := c.Locals("id").(string)
     userID, err := convertUUIDtoUserID(uuid)
@@ -430,6 +431,7 @@ func GetPurchases(c *fiber.Ctx) error {
     })
 }
 
+
 func SearchTitle(c *fiber.Ctx) error {
     type TitleInput struct {
         Title string `json:"book_title"`
@@ -467,6 +469,7 @@ func SearchTitle(c *fiber.Ctx) error {
         "data":    books,
     })
 }
+
 
 func SearchAuthor(c *fiber.Ctx) error {
     type AuthorInput struct {
@@ -507,6 +510,46 @@ func SearchAuthor(c *fiber.Ctx) error {
 }
 
 
+func GetRecommendations(c *fiber.Ctx) error {
+    bookID := c.Params("bookID")
+    bookIDNum, err := strconv.Atoi(bookID)
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to parse book ID",
+            "errors":   err,
+        })
+    }
+    bookIDint := uint(bookIDNum)
+
+    bookName, err := getNameFromBookID(bookIDint)
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to fetch book name",
+            "errors":   err,
+        })
+    }
+    bookListName := getRecommendations(bookName)
+
+    var books []models.Book
+    for _, bookName := range bookListName {
+        var book models.Book
+        if err := database.DB.Where("book_title = ?", bookName).First(&book).Error; err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error":   true,
+                "message": "Failed to retrieve book details",
+            })
+        }
+        books = append(books, book)
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "error":   false,
+        "message": "Recommendations fetched successfully",
+        "data":    books,
+    })
+}
 
 
 
@@ -526,6 +569,7 @@ func calculatePagination(page, pageSize string, totalCount int64) (int, int) {
 	return offset, limit
 }
 
+
 func parsePageNumber(page string) int {
 	pageNum := 1
 	if p, err := strconv.Atoi(page); err == nil && p > 0 {
@@ -533,6 +577,7 @@ func parsePageNumber(page string) int {
 	}
 	return pageNum
 }
+
 
 func parsePageSize(pageSize string) int {
 	pageSizeNum := 10
@@ -542,10 +587,20 @@ func parsePageSize(pageSize string) int {
 	return pageSizeNum
 }
 
+
 func convertUUIDtoUserID(uuid string) (uint, error) {
     var user models.User
     if err := database.DB.Where("uuid = ?", uuid).First(&user).Error; err != nil {
         return 0, err
     }
     return user.ID, nil
+}
+
+
+func getNameFromBookID(bookID uint) (string, error) {
+    var book models.Book
+    if err := database.DB.Where("id = ?", bookID).First(&book).Error; err != nil {
+        return "", err
+    }
+    return book.BookTitle, nil
 }
