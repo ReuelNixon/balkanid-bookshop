@@ -19,11 +19,14 @@ func SetupBookRoutes() {
 	privPaths.Post("/postReview", PostReview)
     privPaths.Post("/:bookID/checkout", Checkout)
     privPaths.Get("/purchases", GetPurchases)
+    privPaths.Post("/checkoutAll", CheckoutAll)
     
 	BOOK.Get("/", GetPaginatedBooks)
-    BOOK.Get("/search/:query", SearchBooks)
+    BOOK.Post("/searchTitle", SearchTitle)
+    BOOK.Post("/searchAuthor", SearchAuthor)
 	BOOK.Get("/:bookID/reviews", GetPaginatedReviews)
 	BOOK.Get("/:bookID", GetBookByID)
+    BOOK.Get("/:bookID/recommendations", GetRecommendations)
 }
 
  
@@ -175,10 +178,22 @@ func GetCartItems(c *fiber.Ctx) error {
         })
     }
 
+    var books []models.Book
+    for _, cartItem := range cartItems {
+        var book models.Book
+        if err := database.DB.Where("id = ?", cartItem.BookID).First(&book).Error; err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error":   true,
+                "message": "Failed to retrieve book details",
+            })
+        }
+        books = append(books, book)
+    }
+
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "error":   false,
         "message": "Cart items fetched successfully",
-        "data":    cartItems,
+        "data":    books,
     })
 }
 
@@ -271,25 +286,27 @@ func Checkout(c *fiber.Ctx) error {
         })
     }
 
+    isInCart := true
     // Check if the book is in the user's cart
     var cartItem models.Cart
     if err := database.DB.Where("book_id = ?", bookID).Where("user_id = ?", userID).First(&cartItem).Error; err != nil {
         if err == gorm.ErrRecordNotFound {
-            return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-                "error":   true,
-                "message": "Book not found in cart",
-            })
-        }
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error":   true,
-            "message": "Failed to retrieve cart item",
-        })
+            isInCart = false
+        } 
     }
 
-    // Create a history entry
+    bookIDNum, err := strconv.Atoi(bookID)
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to parse book ID",
+            "errors":   err,
+        })
+    }
+    bookIDint := uint(bookIDNum)
     historyEntry := models.History{
         UserID: userID,
-        BookID: cartItem.BookID,
+        BookID: bookIDint,
     }
     if err := database.DB.Create(&historyEntry).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -299,10 +316,73 @@ func Checkout(c *fiber.Ctx) error {
     }
 
     // Remove the item from the cart
-    if err := database.DB.Delete(&cartItem).Error; err != nil {
+    if isInCart {
+        if err := database.DB.Delete(&cartItem).Error; err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error":   true,
+                "message": "Failed to remove item from cart",
+                "isInCart": isInCart,
+            })
+        }
+    }
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "error":   false,
+        "message": "Checkout successful",
+    })
+}
+
+func CheckoutAll(c *fiber.Ctx) error {
+    uuid := c.Locals("id").(string)
+    userID, err := convertUUIDtoUserID(uuid)
+    if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
-            "message": "Failed to remove item from cart",
+            "message": "Failed to parse user ID",
+        })
+    }
+
+    // Check if the book is in the user's cart
+    var cartItems []models.Cart
+    if err := database.DB.Where("user_id = ?", userID).Find(&cartItems).Error; err != nil {
+        if err == gorm.ErrRecordNotFound {
+            return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+                "error":   true,
+                "message": "Cart is empty",
+            })
+        }
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to retrieve cart items",
+        })
+    }
+
+    if len(cartItems) == 0 {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error":   true,
+            "message": "Cart is empty",
+        })
+    }
+
+    // Create a history entry for each item in the cart
+    for _, cartItem := range cartItems {
+        historyEntry := models.History{
+            UserID: userID,
+            BookID: cartItem.BookID,
+        }
+        if err := database.DB.Create(&historyEntry).Error; err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error":   true,
+                "message": "Failed to create history entry",
+            })
+        }
+    }
+
+    // Remove all items from the cart
+    if err := database.DB.Where("user_id = ?", userID).Delete(&models.Cart{}).Error; err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to remove items from cart",
         })
     }
 
@@ -331,38 +411,49 @@ func GetPurchases(c *fiber.Ctx) error {
         })
     }
 
+    var books []models.Book
+    for _, historyEntry := range historyEntries {
+        var book models.Book
+        if err := database.DB.Where("id = ?", historyEntry.BookID).First(&book).Error; err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error":   true,
+                "message": "Failed to retrieve book details",
+            })
+        }
+        books = append(books, book)
+    }
+
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
         "error":   false,
         "message": "History entries fetched successfully",
-        "data":    historyEntries,
+        "data":    books,
     })
 }
 
-func SearchBooks(c *fiber.Ctx) error {
-    query := c.Params("query")
-    page := c.Query("page", "1")
-    pageSize := c.Query("pageSize", "10")
+func SearchTitle(c *fiber.Ctx) error {
+    type TitleInput struct {
+        Title string `json:"book_title"`
+    } 
 
-    pageNum := parsePageNumber(page)
-    pageSizeNum := parsePageSize(pageSize)
+    var input TitleInput
+    if err := c.BodyParser(&input); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error":   true,
+            "message": "Invalid request body",
+        })
+    }
 
-    // var books []models.Book
-    // if err := database.DB.Where("book_title LIKE ?","%"+query+"%").
-    //         Or("book_author LIKE ?", "%"+query+"%").
-    //         Offset((pageNum - 1) * pageSizeNum).
-    //         Limit(pageSizeNum).
-    //         Find(&books).Error; err != nil {
-    //     return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-    //         "error":   true,
-    //         "message": "Failed to fetch search results",
-    //         "errors":   err,
-    //     })
-    // }
+    if input.Title == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error":   true,
+            "message": "Missing book_title parameter",
+        })
+    }
+
+    query := input.Title
+
     var books []models.Book
     if err := database.DB.Where("CONCAT(' ', LOWER(book_title)) ILIKE ?", "% "+strings.ToLower(query)+"%").
-            Or("CONCAT(' ', LOWER(book_author)) ILIKE ?", "% "+strings.ToLower(query)+"%").
-            Offset((pageNum - 1) * pageSizeNum).
-            Limit(pageSizeNum).
             Find(&books).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error":   true,
@@ -376,6 +467,45 @@ func SearchBooks(c *fiber.Ctx) error {
         "data":    books,
     })
 }
+
+func SearchAuthor(c *fiber.Ctx) error {
+    type AuthorInput struct {
+        Author string `json:"book_author"`
+    } 
+
+    var input AuthorInput
+    if err := c.BodyParser(&input); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error":   true,
+            "message": "Invalid request body",
+        })
+    }
+
+    if input.Author == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error":   true,
+            "message": "Missing book_author parameter",
+        })
+    }
+
+    query := input.Author
+
+    var books []models.Book
+    if err := database.DB.Where("CONCAT(' ', LOWER(book_author)) ILIKE ?", "% "+strings.ToLower(query)+"%").
+            Find(&books).Error; err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error":   true,
+            "message": "Failed to fetch search results",
+            "errors":   err,
+        })
+    }
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "error":   false,
+        "message": "Search results fetched successfully",
+        "data":    books,
+    })
+}
+
 
 
 

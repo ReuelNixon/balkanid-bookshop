@@ -89,7 +89,7 @@ func LoginUser(c *fiber.Ctx) error {
     input := new(LoginInput)
 
     if err := c.BodyParser(input); err != nil {
-        return c.JSON(fiber.Map{"error": true, "input": "Please review your input"})
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": true, "input": "Please review your input"})
     }
 
     // check if a user exists
@@ -98,12 +98,12 @@ func LoginUser(c *fiber.Ctx) error {
         &models.User{Email: input.Identity}).Or(
         &models.User{Username: input.Identity},
     ).First(&u); res.RowsAffected <= 0 {
-        return c.JSON(fiber.Map{"error": true, "general": "Invalid Credentials."})
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": true, "general": "Invalid Credentials."})
     }
 
     // Comparing the password with the hash
     if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(input.Password)); err != nil {
-        return c.JSON(fiber.Map{"error": true, "general": "Invalid Credentials."})
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": true, "general": "Invalid Credentials."})
     }
 
     // setting up the authorization cookies
