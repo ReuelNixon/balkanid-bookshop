@@ -1,20 +1,15 @@
 "use client";
-import { useRouter } from "next/navigation";
+
+import { BookCard } from "@/components/book-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@radix-ui/react-label";
 import { useState } from "react";
-import { BookCard } from "./book-card";
-import { Button } from "./ui/button";
 
-// <BookGrid bookList={data}/>
-
-interface BookGridProps {
-	bookList: any;
-}
-
-export function BookGrid({ bookList }: BookGridProps) {
-	const Router = useRouter();
+export default function Home() {
 	const [searchText, setSearchText] = useState("");
 
-	const [books, setBooks] = useState(bookList);
+	const [books, setBooks] = useState([]);
 
 	async function searchAuthor(authorName: string) {
 		setBooks([]);
@@ -49,15 +44,14 @@ export function BookGrid({ bookList }: BookGridProps) {
 		const data = await response.json();
 		setBooks(data.data);
 	}
-
 	return (
 		<>
 			<div>
 				<h3 className="text-2xl py-6 text-center">
 					Search For The Book!
 				</h3>
-				{/* <div className="grid w-full max-w-sm items-center gap-1.5">
-					<Label htmlFor="bookName">Book Name</Label>
+				<div className="grid w-full max-w-sm items-center gap-1.5">
+					<Label htmlFor="bookName">Book or Author Name</Label>
 					<Input
 						type="text"
 						value={searchText}
@@ -71,6 +65,7 @@ export function BookGrid({ bookList }: BookGridProps) {
 						onClick={() => {
 							searchTitle(searchText);
 						}}
+						disabled={searchText == ""}
 					>
 						Search With Title
 					</Button>
@@ -80,19 +75,9 @@ export function BookGrid({ bookList }: BookGridProps) {
 						onClick={() => {
 							searchAuthor(searchText);
 						}}
+						disabled={searchText == ""}
 					>
 						Search With Author
-					</Button>
-				</div> */}
-
-				<div className="grid w-full py-6 max-w-sm items-center gap-1.5">
-					<Button
-						variant="default"
-						onClick={() => {
-							Router.push("/search");
-						}}
-					>
-						Go to Search Page
 					</Button>
 				</div>
 
@@ -102,7 +87,7 @@ export function BookGrid({ bookList }: BookGridProps) {
 			</div>
 
 			<div className="mb-32 grid text-center md:grid-cols-2 lg:mb-0 lg:grid-cols-3 lg:text-left">
-				{bookList.map((book: any) => {
+				{books.map((book: any) => {
 					return (
 						<BookCard
 							name={book.book_title}

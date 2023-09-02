@@ -37,7 +37,11 @@ export default function Register() {
 			);
 			const data = await response.json();
 			if (data.error) {
-				let message = data.username || data.email || data.password;
+				let message =
+					data.username ||
+					data.email ||
+					data.password ||
+					data.general;
 				throw new Error(message);
 			}
 			setError("");

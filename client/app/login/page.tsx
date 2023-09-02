@@ -37,7 +37,11 @@ export default function Login() {
 			);
 			const data = await response.json();
 			if (data.error) {
-				let message = data.username || data.email || data.password;
+				let message =
+					data.username ||
+					data.email ||
+					data.password ||
+					data.general;
 				throw new Error(message);
 			}
 			setError("");
@@ -79,7 +83,9 @@ export default function Login() {
 							/>
 						</div>
 					</CardContent>
-					<div className="justify-center text-red-500">{error}</div>
+					<div className="justify-center text-red-500 text-center">
+						{error}
+					</div>
 					<CardFooter className="flex flex-col">
 						<Button className="w-full" onClick={handleSubmit}>
 							Sign in
