@@ -1,4 +1,5 @@
 "use client";
+import { BookCard } from "@/components/book-card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
@@ -27,6 +28,7 @@ export default function BookPage({ params }: ParamType) {
 	const [error, setError] = useState("");
 	const [review, setReview] = useState("");
 	const [rating, setRating] = useState(0);
+	const [books, setBooks] = useState([]);
 
 	async function checkCart(ID: string) {
 		const IDnum = parseInt(ID);
@@ -143,11 +145,24 @@ export default function BookPage({ params }: ParamType) {
 		}
 	}
 
+	async function getRecommendeations() {
+		const response = await fetch(
+			`http://localhost:3000/api/book/${bookID}/recommendations`,
+			{
+				method: "GET",
+				credentials: "include",
+			}
+		);
+		const data = await response.json();
+		setBooks(data.data.slice(1, 10));
+	}
+
 	useEffect(() => {
 		getBook(bookID);
 		getReviews(bookID);
 		checkCart(bookID);
 		checkPurchases(bookID);
+		getRecommendeations();
 	}, []);
 
 	return (
@@ -238,6 +253,22 @@ export default function BookPage({ params }: ParamType) {
 					})}
 				</div>
 			)}
+			<h3 className="text-2xl text-bold py-4 text-center">
+				You might also like
+			</h3>
+			<div className="mb-32 grid text-center md:grid-cols-2 lg:mb-0 lg:grid-cols-3 lg:text-left">
+				{books.map((book: any) => {
+					return (
+						<BookCard
+							name={book.book_title}
+							id={book.ID.toString()}
+							imgUrl={book.image_url}
+							key={book.book_title + "Card"}
+						/>
+					);
+				})}
+			</div>
+
 			<div className="flex flex-col justify-around w-full max-w-3xl flex-wrap">
 				<h3 className="text-2xl text-bold pt-4 text-center">
 					Post a review
