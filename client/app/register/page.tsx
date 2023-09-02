@@ -47,7 +47,8 @@ export default function Register() {
 			setError("");
 			setCookies("isLoggedIn", true);
 			setCookies("username", username);
-			Router.push("/");
+			window.location.href = "/";
+			// Router.push("/");
 		} catch (error: any) {
 			setError(error.message);
 		}

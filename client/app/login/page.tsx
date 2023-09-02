@@ -47,7 +47,8 @@ export default function Login() {
 			setError("");
 			setCookies("isLoggedIn", true);
 			setCookies("username", identity);
-			Router.push("/");
+			window.location.href = "/";
+			// Router.push("/");
 		} catch (error: any) {
 			setError(error.message);
 		}
